@@ -23,6 +23,9 @@ public class GridCell : MonoBehaviour {
     public GridCell[] cellNeighbours = new GridCell[6];
     public float height;
 
+    public bool Walkable = true;
+    public Transform entity;
+
     public void SetNeighbour(HexDirection direction, GridCell cell)
     {
         if (cell == null) return;
