@@ -3,51 +3,54 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class InputManager: MonoBehaviour {
-    public bool AllowInput = true;
+    public static bool AllowInput = true;
     public float playerMoveSpeed;
     public LayerMask gridLayer;
 
-    public GridCell playerGridPos;
+    public static GridCell playerGridPos;
 
-    public GridGen grid;
+    public GridGen gridGen;
+    public static int stage = 0;
+    public static Transform player;
 
 	// Use this for initialization
 	void Start () {
-        playerGridPos = grid.gridCells[grid.gridRadius, 2];
-        this.transform.position = playerGridPos.transform.position;
+        player = this.transform;
+        playerGridPos = gridGen.grid[0].gridCells[gridGen.gridRadius, 2];
+        player.transform.position = playerGridPos.transform.position;
 	}
 	
 	// Update is called once per frame
 	void Update () {
 
-        this.transform.position = Vector3.MoveTowards(this.transform.position, playerGridPos.transform.position, playerMoveSpeed * Time.deltaTime);
-        if(this.transform.position == playerGridPos.transform.position)
+        if (playerGridPos == gridGen.grid[stage%2].gridCells[gridGen.grid[stage%2].exitLot.x, gridGen.grid[stage%2].exitLot.y])
         {
-            AllowInput = true;
+            
+            StartCoroutine(gridGen.MoveToNextGrid());
         }
+
         if (!AllowInput) return;
 
         if (Input.GetButtonDown("Fire1"))
         {
-            Debug.Log("Click");
+            //Debug.Log("Click");
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit2D hit = Physics2D.GetRayIntersection(ray, 20f,gridLayer);
 
             if (hit == false) return;
-            Debug.Log("Hit");
+            //Debug.Log("Hit");
             GridCell gridCell = hit.transform.GetComponent<GridCell>();
 
 
             if (gridCell == null) return;
             if (!gridCell.Walkable) return;
 
-            Debug.Log("Empty Cell Detected");
+            //Debug.Log("Empty Cell Detected");
             for (int i = 0; i < 6; i++)
             {
                 if(playerGridPos.cellNeighbours[i] == gridCell)
                 {
-                    MovePlayer(i);
-                    AllowInput = false;
+                    StartCoroutine(MovePlayer(i));
                     break;
                 }
             }
@@ -55,8 +58,21 @@ public class InputManager: MonoBehaviour {
 
     }
 
-    void MovePlayer(int dir)
+    IEnumerator MovePlayer(int dir)
     {
         playerGridPos = playerGridPos.cellNeighbours[dir];
+        gridGen.ResetDijkstra(playerGridPos.arrayCoords.x, playerGridPos.arrayCoords.y, gridGen.grid[stage % 2].heightMap, gridGen.grid[stage % 2].gridCells);
+        while (player.transform.position != playerGridPos.transform.position)
+        {
+            player.transform.position = Vector3.MoveTowards(this.transform.position, playerGridPos.transform.position, playerMoveSpeed * Time.deltaTime);
+            if (player.transform.position == playerGridPos.transform.position)
+            {
+                AllowInput = true;
+                yield return true;
+            }
+            else AllowInput = false;
+
+            yield return null;
+        }
     }
 }

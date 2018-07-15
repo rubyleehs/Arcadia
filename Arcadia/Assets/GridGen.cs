@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 public static class HexMetrics
 {
@@ -17,40 +19,50 @@ public static class HexMetrics
     };
 }
 
+[System.Serializable]
+public class Grid
+{
+    public GridCell[,] gridCells;
+    public float[,] heightMap;
+    public Vector2Int exitLot;//2d array coords
+}
+
 public class GridGen : MonoBehaviour
 {
-
+    public float camMoveSpeed;
     public Color lavaColor;
+    public Color normalColor;
 
     public GameObject cellPrefab;
     public int gridRadius;
     public float cellPadding;
-    public Transform cellParent;
 
-    public GridCell[,] gridCells;
-    public GridCell[,] nextGridCells;
+    public Grid[] grid;
+    public Transform[] cellParents;
 
-
-    private float[,] heightMap;
-    private float[,] nextHeightMap;
 
     private int[,] dijkstraMap;
     public float lavaMinHeight = 43;
     private bool GridPossible = false;
-    public Vector2Int exitLot;
-    public Vector2Int nextExitLot;
+    
 
 
 
     // Use this for initialization
     void Awake()
     {
+        grid = new Grid[2];
         dijkstraMap = new int[2 * gridRadius + 1, 2 * gridRadius + 1];
-        gridCells = new GridCell[2 * gridRadius + 1, 2 * gridRadius + 1];
-        nextGridCells = new GridCell[2 * gridRadius + 1, 2 * gridRadius + 1];
-        heightMap = new float[2 * gridRadius + 1, 2 * gridRadius + 1];
-        nextHeightMap = new float[2 * gridRadius + 1, 2 * gridRadius + 1];
-
+        grid[0] = new Grid()
+        {
+            gridCells = new GridCell[2 * gridRadius + 1, 2 * gridRadius + 1],
+            heightMap = new float[2 * gridRadius + 1, 2 * gridRadius + 1],
+        };
+        grid[1] = new Grid()
+        {
+            gridCells = new GridCell[2 * gridRadius + 1, 2 * gridRadius + 1],
+            heightMap = new float[2 * gridRadius + 1, 2 * gridRadius + 1],
+        };
 
         for (int y = 0; y <= 2 * gridRadius; y++)
         {
@@ -58,9 +70,9 @@ public class GridGen : MonoBehaviour
             {
                 if (Mathf.Abs(x - (y + gridRadius) / 2) <= gridRadius && Mathf.Abs(y - gridRadius) <= gridRadius && Mathf.Abs(x - (y + gridRadius) / 2 + y - gridRadius) <= gridRadius)
                 {
-                    CreateCell(x, y, gridCells);
-                    CreateCell(x, y, nextGridCells);
-                    nextGridCells[x, y].gameObject.transform.position += new Vector3(200, 0, 0);
+                    CreateCell(x, y, grid[0].gridCells, cellParents[0]);
+                    CreateCell(x, y, grid[1].gridCells, cellParents[1]);
+                    //oddGridCells[x, y].gameObject.transform.position += grid[0].gridCells[exitLot.x, exitLot.y].transform.position;
                 }
             }
         }
@@ -68,14 +80,18 @@ public class GridGen : MonoBehaviour
         while (!GridPossible)
         {
             attempts++;
-            CreateMap(ref heightMap, gridCells, ref exitLot);
+            CreateMap(ref grid[0].heightMap, grid[0].gridCells, ref grid[0].exitLot);
 
-            CreateNextHeightMap(exitLot.x - gridRadius, exitLot.y - 2, heightMap, ref nextHeightMap, nextGridCells);
-            CreateMap(ref nextHeightMap, nextGridCells, ref nextExitLot);
+            CreateNextHeightMap(grid[0].exitLot.x - gridRadius, grid[0].exitLot.y - 2, grid[0].heightMap, ref grid[1].heightMap);
+            CreateMap(ref grid[1].heightMap, grid[1].gridCells, ref grid[1].exitLot);
         }
         Debug.Log(attempts);
-        UpdateVisuals(heightMap, gridCells, exitLot);
-        UpdateVisuals(nextHeightMap, nextGridCells, nextExitLot);
+
+
+        cellParents[1].transform.position += grid[0].gridCells[grid[0].exitLot.x, grid[0].exitLot.y].transform.position - grid[0].gridCells[gridRadius, 2].transform.position;
+        cellParents[1].gameObject.SetActive(false);
+        UpdateVisuals(grid[0].heightMap, grid[0].gridCells, grid[0].exitLot);
+        UpdateVisuals(grid[1].heightMap, grid[1].gridCells, grid[1].exitLot);
     }
 
     public void CreateMap(ref float[,] _heightMap, GridCell[,] _gridCells, ref Vector2Int _exitLot)
@@ -136,12 +152,12 @@ public class GridGen : MonoBehaviour
                 if (_gridCells[_exitLot.x, _exitLot.y] != null && (_exitLot.x <= gridRadius-2 || _exitLot.x >= gridRadius +2))
                 {
                     //Debug.Log(_gridCells[_exitLot.x, _exitLot.y].transform.position);
-                    _heightMap[exitLot.x, exitLot.y] = 130;
+                    _heightMap[_exitLot.x, _exitLot.y] = 130;
                     break;
                 }
             }
 
-            //Debug.Log("s: " + heightMap[gridRadius, 2]);
+            //Debug.Log("s: " + grid[0].heightMap[gridRadius, 2]);
 
             EvenOutHeightMap(2, ref _heightMap);
             for (int y = 0; y <= 2 * gridRadius; y++)
@@ -154,9 +170,9 @@ public class GridGen : MonoBehaviour
                     }
                 }
             }
-            //Debug.Log("e: " + heightMap[gridRadius, 2]);
+            //Debug.Log("e: " + grid[0].heightMap[gridRadius, 2]);
             ResetDijkstra(gridRadius, 2, _heightMap, _gridCells);
-            if (dijkstraMap[exitLot.x, exitLot.y] < 1000 && dijkstraMap[exitLot.x, exitLot.y] > 0)
+            if (dijkstraMap[_exitLot.x, _exitLot.y] < 1000 && dijkstraMap[_exitLot.x, _exitLot.y] > 0)
             {
                 //Debug.Log(dijkstraMap[endX, endY]);
                 GridPossible = true;
@@ -182,7 +198,11 @@ public class GridGen : MonoBehaviour
                         _gridCells[x, y].Walkable = false;
                         _gridCells[x, y].transform.GetComponent<SpriteRenderer>().color = lavaColor;
                     }
-                    else _gridCells[x, y].Walkable = true;
+                    else
+                    {
+                        _gridCells[x, y].Walkable = true;
+                        _gridCells[x, y].transform.GetComponent<SpriteRenderer>().color = normalColor;
+                    }
                 }
             }
         }
@@ -192,7 +212,7 @@ public class GridGen : MonoBehaviour
     }
 
 
-    public void CreateCell(int x, int y, GridCell[,] _gridCells)
+    public void CreateCell(int x, int y, GridCell[,] _gridCells, Transform _cellParent)
     {
         Vector3 cellPos = new Vector3((x - gridRadius) * (HexMetrics.innerRadius + cellPadding) * 2f, (y - gridRadius) * (HexMetrics.outerRadius + cellPadding) * 1.5f, 0);
         cellPos.x += (HexMetrics.innerRadius + cellPadding) * Mathf.Abs((y - gridRadius) % 2);
@@ -231,7 +251,7 @@ public class GridGen : MonoBehaviour
         }
 
 
-        cell.transform.SetParent(cellParent, false);
+        cell.transform.SetParent(_cellParent, false);
         cell.transform.localPosition = cellPos;
         //cell.transform.localPosition = new Vector3(x * 15, y * 15);
         cell.transform.localScale = Vector3.one * HexMetrics.outerRadius * 2;
@@ -312,7 +332,7 @@ public class GridGen : MonoBehaviour
         }
     }
 
-    private void CreateNextHeightMap(int xDisplacement, int yDisplacement, float[,] mapToCopy, ref float[,] mapToPaste, GridCell[,] nextCells)
+    private void CreateNextHeightMap(int xDisplacement, int yDisplacement, float[,] mapToCopy, ref float[,] mapToPaste)
     {
         for (int y = 0; y <= 2 * gridRadius; y++)
         {
@@ -334,9 +354,39 @@ public class GridGen : MonoBehaviour
                 //Debug.Log(mapToCopy[x + xDisplacement, y + yDisplacement] + " vs " + mapToPaste[x, y]);
             }
         }
-        //EvenOutHeightMap(2, ref nextHeightMap);
-        //CreateMap(ref mapToPaste , nextCells);
-        //UpdateVisuals(mapToPaste, nextCells);
     }
+
+    public IEnumerator MoveToNextGrid()
+    {
+        InputManager.stage++;
+        cellParents[InputManager.stage % 2].gameObject.SetActive(true);
+        while (Camera.main.transform.position != cellParents[InputManager.stage % 2].transform.position + new Vector3(0, 0, -10))
+        {
+            InputManager.AllowInput = false;
+            Camera.main.transform.position = Vector3.MoveTowards(Camera.main.transform.position, cellParents[InputManager.stage % 2].transform.position + new Vector3(0, 0, -10), camMoveSpeed * Time.deltaTime);
+            if (Camera.main.transform.position == cellParents[InputManager.stage % 2].transform.position + new Vector3(0, 0, -10))
+            {
+                SetupNextGrid();
+                yield return true;
+            }
+            yield return null;
+        }
+    }
+
+    void SetupNextGrid()
+    {
+        InputManager.AllowInput = true;
+        cellParents[(InputManager.stage + 1) % 2].gameObject.SetActive(false);
+        Camera.main.transform.position = new Vector3(0, 0, -10);
+        cellParents[InputManager.stage % 2].transform.position = Vector3.zero;
+        cellParents[(InputManager.stage + 1) % 2].transform.position = grid[InputManager.stage % 2].gridCells[grid[InputManager.stage % 2].exitLot.x, grid[InputManager.stage % 2].exitLot.y].transform.position - grid[InputManager.stage % 2].gridCells[gridRadius, 2].transform.position;
+        InputManager.playerGridPos = grid[InputManager.stage % 2].gridCells[gridRadius, 2];
+        InputManager.player.position = InputManager.playerGridPos.transform.position;
+
+        CreateNextHeightMap(grid[InputManager.stage % 2].exitLot.x - gridRadius, grid[InputManager.stage % 2].exitLot.y - 2, grid[InputManager.stage % 2].heightMap, ref grid[(InputManager.stage + 1) % 2].heightMap);
+        CreateMap(ref grid[(InputManager.stage + 1) % 2].heightMap, grid[(InputManager.stage + 1) % 2].gridCells, ref grid[(InputManager.stage + 1) % 2].exitLot);
+        UpdateVisuals(grid[(InputManager.stage + 1) % 2].heightMap, grid[(InputManager.stage + 1) % 2].gridCells, grid[(InputManager.stage + 1) % 2].exitLot);
+    }
+
 }
     
