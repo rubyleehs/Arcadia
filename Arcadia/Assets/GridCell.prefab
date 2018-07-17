@@ -95,6 +95,9 @@ MonoBehaviour:
   height: 0
   Walkable: 1
   entity: {fileID: 0}
+  dijkstraValue: 0
+  IsNowAnim: 0
+  gridNo: 0
 --- !u!212 &212772892223700926
 SpriteRenderer:
   m_ObjectHideFlags: 1
