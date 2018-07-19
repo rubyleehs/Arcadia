@@ -310,7 +310,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 581543428}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 42.326637, y: -6.228726, z: -1.9375}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 8, y: 8, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -332,6 +332,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   gridGen: {fileID: 1996998770}
+  enemyManager: {fileID: 1357016135}
 --- !u!1 &1158523165
 GameObject:
   m_ObjectHideFlags: 0
@@ -486,6 +487,51 @@ Transform:
   m_Father: {fileID: 1996998771}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1357016134
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 1357016136}
+  - component: {fileID: 1357016135}
+  m_Layer: 0
+  m_Name: EnemyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1357016135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1357016134}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6c11dc244a694f408b5d29042ce90ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tempWarrior: {fileID: 1597929227859840, guid: 6c32abad6d05b1946a1b9877a2a6834c,
+    type: 2}
+  I_enemyMoveSpeed: 82
+  gridGen: {fileID: 1996998770}
+  enemies: []
+--- !u!4 &1357016136
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1357016134}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 18.848917, y: -36.545944, z: -0.78125}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1996998769
 GameObject:
   m_ObjectHideFlags: 0
@@ -514,14 +560,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cellPrefab: {fileID: 1292792621244722, guid: da262e7195d078848bc73dc9bdebf33a, type: 2}
-  gridRadius: 10
   cellPadding: 0.5
-  grid: []
-  cellParents:
+  I_cellParents:
   - {fileID: 179996397}
   - {fileID: 1288899270}
   gridTransitionAnimBorder: {fileID: 1158523166}
   lavaMinHeight: 44
+  enemyManager: {fileID: 1357016135}
 --- !u!4 &1996998771
 Transform:
   m_ObjectHideFlags: 0

@@ -18,7 +18,7 @@ public static class HexDirectionExtensions
 
 public class GridCell : MonoBehaviour
 {
-
+    public bool IsCopied;
     public Vector2Int arrayCoords;
     public Vector3Int cellCoords;
     public GridCell[] cellNeighbours = new GridCell[6];
@@ -58,6 +58,12 @@ public class GridCell : MonoBehaviour
         float progress = 0;
         float smoothenProgress = 0;
         spriteRenderer.enabled = true;
+
+        if (entity != null)
+        {
+            entity.GetComponent<SpriteRenderer>().enabled = true;
+        }
+
         while (progress < 1)
         {
             progress += VisualInfo.cellEntranceSpeed * Time.deltaTime;
@@ -92,14 +98,14 @@ public class GridCell : MonoBehaviour
         while (progress < VisualInfo.cellExitMaxDelay)
         {
             progress += Time.deltaTime;
-            if(Random.Range(0, VisualInfo.cellExitMaxDelay) <= progress)
+            if (Random.Range(0, VisualInfo.cellExitMaxDelay) <= progress)
             {
                 break;
             }
             yield return null;
         }
         progress = 0;
-            while (progress < 1)
+        while (progress < 1)
         {
             progress += VisualInfo.cellExitSpeed * Time.deltaTime;
             smoothenProgress = Mathf.SmoothStep(0, 1, Mathf.SmoothStep(0, 1, progress));
@@ -111,6 +117,11 @@ public class GridCell : MonoBehaviour
             if (progress >= 1)
             {
                 //this.transform.GetComponent<PolygonCollider2D>().enabled = false;
+
+                for (int i = 0; i < this.transform.childCount; i++)
+                {
+                    this.transform.GetChild(i).gameObject.SetActive(false);
+                }
                 spriteRenderer.color = startColor;
                 this.transform.localScale = startScale;
                 spriteRenderer.enabled = false;
@@ -159,8 +170,9 @@ public class GridCell : MonoBehaviour
         GridCell nextCell = null;
         for (int i = 0; i < 6; i++)
         {
-            if(cellNeighbours[i] != null && cellNeighbours[i].dijkstraValue >0)
+            if(cellNeighbours[i] != null && cellNeighbours[i].dijkstraValue >0 && cellNeighbours[i].Walkable) //DOnt put Walkable orcannot make/find last step as playable is on non walkable cell lol;
             {
+                
                 if (nextCell == null) nextCell = cellNeighbours[i];
                 else if (nextCell.dijkstraValue > cellNeighbours[i].dijkstraValue) nextCell = cellNeighbours[i];
             }

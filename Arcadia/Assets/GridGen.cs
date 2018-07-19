@@ -31,11 +31,12 @@ public class GridGen : MonoBehaviour
 {
 
     public GameObject cellPrefab;
-    public int gridRadius;
+    public static int gridRadius = 9;
     public float cellPadding;
 
-    public Grid[] grid;
-    public Transform[] cellParents;
+    public static Grid[] grid;
+    public Transform[] I_cellParents;
+    public static Transform[] cellParents;
     public Transform gridTransitionAnimBorder;
 
 
@@ -44,10 +45,13 @@ public class GridGen : MonoBehaviour
     private bool GridPossible = false;
     public static bool IsMoving = false;
 
+    public EnemyManager enemyManager;
+
 
     // Use this for initialization
     void Awake()
     {
+        cellParents = I_cellParents;
         gridTransitionAnimBorder.localScale = new Vector3(gridRadius * HexMetrics.outerRadius * 3.875f, gridRadius * HexMetrics.outerRadius * 3.875f, 1);
         grid = new Grid[2];
         dijkstraMap = new int[2 * gridRadius + 1, 2 * gridRadius + 1];
@@ -252,10 +256,10 @@ public class GridGen : MonoBehaviour
             }
         }
 
-        cell.transform.SetParent(_cellParent, false);
         cell.transform.localPosition = cellPos;
         //cell.transform.localPosition = new Vector3(x * 15, y * 15);
         cell.transform.localScale = Vector3.one * HexMetrics.outerRadius * 2;
+        cell.transform.SetParent(_cellParent);
         
     }
 
@@ -300,7 +304,7 @@ public class GridGen : MonoBehaviour
         {
             for (int x = 0; x <= 2 * gridRadius; x++)
             {
-                if (_heightMap[x, y] >= lavaMinHeight && _gridCells[x, y] != null && _gridCells[x, y].Walkable)
+                if (_heightMap[x, y] >= lavaMinHeight && _gridCells[x, y] != null)
                 {
                     dijkstraMap[x, y] = 1000;
                 }
@@ -322,17 +326,17 @@ public class GridGen : MonoBehaviour
         {
             for (int dx = 1; dx >= -1; dx--)
             {
-                if (!((y % 2 == 1 && (dx == -1 && dy != 0)) || (y % 2 == 0 && (dx == 1 && dy != 0))))
+                if (!((y %2 == 0 && dx == -1 && dy != 0) || (y %2 ==1 && dx == 1 && dy != 0)))
                 {
                     if (!(x + dx > 2 * gridRadius || y + dy > 2 * gridRadius || y + dy < 0 || x + dx < 0))
                     {
                         if (dijkstraMap[x + dx, y + dy] > dijkstraMap[x, y] + 1)
                         {
-                            dijkstraMap[x + dx, y + dy] = dijkstraMap[x, y] + 1;
-                            _gridCells[x + dx, y + dy].dijkstraValue = dijkstraMap[x, y] + 1;
-                            UpdateDijkstra(x + dx, y + dy, _heightMap, _gridCells);
-                            //_gridCells[x + dx, y + dy].transform.GetComponent<SpriteRenderer>().color = Color.green;
+                                dijkstraMap[x + dx, y + dy] = dijkstraMap[x, y] + 1;
+                                _gridCells[x + dx, y + dy].dijkstraValue = dijkstraMap[x, y] + 1;
+                                UpdateDijkstra(x + dx, y + dy, _heightMap, _gridCells);
                         }
+                            //_gridCells[x + dx, y + dy].transform.GetComponent<SpriteRenderer>().color = Color.green;
                     }
                 }
             }
@@ -345,11 +349,13 @@ public class GridGen : MonoBehaviour
         List<GridCell> path = new List<GridCell>();
         GridCell pathLastCell = startCell;
         int pathLength = 0;
-        while(pathLastCell != InputManager.playerGridPos)
+        while(pathLastCell != InputManager.playerGridCell)
         {
             pathLength++;
             if (pathLength >= 50 ||pathLastCell == null)
             {
+                Debug.Log(pathLength);
+                Debug.Log(pathLastCell.transform.position);
                 return new List<GridCell>();
             }
             pathLastCell = pathLastCell.LowestAdjDijkstraCell();
@@ -369,18 +375,22 @@ public class GridGen : MonoBehaviour
             {
                 if (x + xDisplacement <= 2 * gridRadius && y + yDisplacement <= 2 * gridRadius && x + xDisplacement > 0 && y + yDisplacement > 0)
                 {
-                    if (yDisplacement % 2 == 1 && y % 2 == 1 && x + xDisplacement +1<= 2 * gridRadius)
+                    if (yDisplacement % 2 == 1 && y % 2 == 1 && x + xDisplacement + 1 <= 2 * gridRadius)
                     {
-                        mapToPaste[x, y] = mapToCopy[x + xDisplacement +1, y + yDisplacement];
-                        
+                        mapToPaste[x, y] = mapToCopy[x + xDisplacement - 1, y + yDisplacement];
+
                     }
                     else
                     {
                         mapToPaste[x, y] = mapToCopy[x + xDisplacement, y + yDisplacement];
                     }
+                    if (grid[(InputManager.stage + 1) % 2].gridCells[x, y] != null) grid[(InputManager.stage + 1) % 2].gridCells[x, y].IsCopied = true;
                 }
-                else mapToPaste[x, y] = 0;
-                //Debug.Log(mapToCopy[x + xDisplacement, y + yDisplacement] + " vs " + mapToPaste[x, y]);
+                else
+                {
+                    mapToPaste[x, y] = 0;
+                    if (grid[(InputManager.stage + 1) % 2].gridCells[x, y] != null) grid[(InputManager.stage + 1) % 2].gridCells[x, y].IsCopied = false;
+                }//Debug.Log(mapToCopy[x + xDisplacement, y + yDisplacement] + " vs " + mapToPaste[x, y]);
             }
         }
     }
@@ -392,6 +402,9 @@ public class GridGen : MonoBehaviour
         //cellParents[InputManager.stage % 2].gameObject.SetActive(true);
         float progress = 0;
         float smoothenProgress = 0;
+        enemyManager.PrepareMovingToNextGrid();
+        enemyManager.SummonRandomMob();
+
         while (Camera.main.transform.position != cellParents[InputManager.stage % 2].transform.position + new Vector3(0, 0, -10))
         {
             progress += VisualInfo.camMoveSpeed * Time.deltaTime;
@@ -400,12 +413,14 @@ public class GridGen : MonoBehaviour
             Camera.main.transform.position = Vector3.Lerp(cellParents[(InputManager.stage +1)% 2].transform.position, cellParents[InputManager.stage % 2].transform.position,smoothenProgress) + new Vector3(0,0,-10);
             if (Camera.main.transform.position == cellParents[InputManager.stage % 2].transform.position + new Vector3(0, 0, -10))
             {
+                Debug.Log("Move Complete!");
                 IsMoving = false;
                 yield return new WaitForSeconds(1 / VisualInfo.cellExitSpeed);
                 SetupNextGrid();
                 yield return true;
             }
-            yield return null;
+            yield return null; //test
+            //twb
         }
     }
 
@@ -417,14 +432,32 @@ public class GridGen : MonoBehaviour
 
         cellParents[(InputManager.stage + 1) % 2].transform.position = grid[InputManager.stage % 2].gridCells[grid[InputManager.stage % 2].exitLot.x, grid[InputManager.stage % 2].exitLot.y].transform.position - grid[InputManager.stage % 2].gridCells[gridRadius, 2].transform.position + Vector3.forward;
         cellParents[InputManager.stage % 2].transform.position = Vector3.zero;
-        InputManager.playerGridPos = grid[InputManager.stage % 2].gridCells[gridRadius, 2];
-        InputManager.player.position = InputManager.playerGridPos.transform.position;
+        InputManager.playerGridCell = grid[InputManager.stage % 2].gridCells[gridRadius, 2];
+        InputManager.player.position = InputManager.playerGridCell.transform.position;
 
+        enemyManager.MoveEnemiesToNextGrid();
         CreateNextHeightMap(grid[InputManager.stage % 2].exitLot.x - gridRadius, grid[InputManager.stage % 2].exitLot.y - 2, grid[InputManager.stage % 2].heightMap, ref grid[(InputManager.stage + 1) % 2].heightMap);
         CreateMap(ref grid[(InputManager.stage + 1) % 2].heightMap, grid[(InputManager.stage + 1) % 2].gridCells, ref grid[(InputManager.stage + 1) % 2].exitLot);
         UpdateVisuals(grid[(InputManager.stage + 1) % 2].heightMap, grid[(InputManager.stage + 1) % 2].gridCells, grid[(InputManager.stage + 1) % 2].exitLot);
 
+
+
         ResetDijkstra(gridRadius, 2, grid[InputManager.stage % 2].heightMap, grid[InputManager.stage % 2].gridCells);
+    }
+
+    public GridCell RandomActiveFreeCell()
+    {
+        while (true)
+        {
+            int x = Random.Range(0, 2 * gridRadius + 1);
+            int y = Random.Range(0, 2 * gridRadius + 1);
+
+            if (grid[InputManager.stage %2].gridCells[x,y] != null && grid[InputManager.stage %2].gridCells[x, y].entity == null && grid[InputManager.stage%2].gridCells[x, y].Walkable && !grid[InputManager.stage %2].gridCells[x, y].IsCopied)
+            {
+                //test
+                return grid[InputManager.stage %2].gridCells[x, y];
+            }
+        }
     }
 
 }

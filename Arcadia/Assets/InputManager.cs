@@ -3,21 +3,24 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class InputManager: MonoBehaviour {
+    public static int playerHP = 3;
+    public static bool PlayerIsMoving = false;
     public static bool AllowInput = true;
     public float playerMoveSpeed;
     public LayerMask gridLayer;
 
-    public static GridCell playerGridPos;
+    public static GridCell playerGridCell;
 
     public GridGen gridGen;
     public static int stage = 0;
     public static Transform player;
+    public EnemyManager enemyManager;
 
 	// Use this for initialization
 	void Start () {
         player = this.transform;
-        playerGridPos = gridGen.grid[0].gridCells[gridGen.gridRadius, 2];
-        player.transform.position = playerGridPos.transform.position;
+        playerGridCell = GridGen.grid[0].gridCells[GridGen.gridRadius, 2];
+        player.transform.position = playerGridCell.transform.position;
 	}
 
     // Update is called once per frame
@@ -26,7 +29,7 @@ public class InputManager: MonoBehaviour {
 
         if (!AllowInput) return;
 
-        if (playerGridPos == gridGen.grid[stage % 2].gridCells[gridGen.grid[stage % 2].exitLot.x, gridGen.grid[stage % 2].exitLot.y])
+        if (playerGridCell == GridGen.grid[stage % 2].gridCells[GridGen.grid[stage % 2].exitLot.x, GridGen.grid[stage % 2].exitLot.y])
         {
 
             StartCoroutine(gridGen.MoveToNextGrid());
@@ -34,13 +37,13 @@ public class InputManager: MonoBehaviour {
 
         if (Input.GetButtonDown("Fire1"))
         {
+
             //Debug.Log("Click");
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit2D[] hits = Physics2D.GetRayIntersectionAll(ray, 20f, gridLayer);
 
             if (hits.Length == 0) return;
             List<GridCell> clickedCells = new List<GridCell>();
-            //Debug.Log("Hit");
             for (int i = 0; i < hits.Length; i++)
             {
                 clickedCells.Add(hits[i].transform.GetComponent<GridCell>());
@@ -59,14 +62,16 @@ public class InputManager: MonoBehaviour {
             if (!clickedCells[0].Walkable) return;
 
             if (EnemyManager.HasActiveEnemies)
-            {
+            {       
                 for (int i = 0; i < clickedCells.Count; i++)
                 {
                     for (int d = 0; d < 6; d++)
                     {
-                        if (playerGridPos.cellNeighbours[d] == clickedCells[i])
+                        if (playerGridCell.cellNeighbours[d] == clickedCells[i])
                         {
                             StartCoroutine(MovePlayer(d));
+                            StartCoroutine(enemyManager.EnemyPhase());
+                            
                             break;
                         }
                     }
@@ -75,12 +80,16 @@ public class InputManager: MonoBehaviour {
             else
             {
                 List<GridCell> pathToClick = gridGen.FindShortestPathToPlayer(clickedCells[0]);
-                if (pathToClick.Count == 0) return;
+                if (pathToClick.Count == 0)
+                {
+                    Debug.Log("No Path!");
+                    return;
+                }
                 //Debug.Log(pathToClick.Count);
                 pathToClick.Reverse();
                 pathToClick.RemoveAt(0);
                 pathToClick.Add(clickedCells[0]);
-
+                Debug.Log("PathStart");
                 StartCoroutine(MovePlayer(pathToClick));
             }
         }
@@ -88,21 +97,24 @@ public class InputManager: MonoBehaviour {
 
     IEnumerator MovePlayer(int dir)
     {
-        playerGridPos.Walkable = true;
-        playerGridPos.entity = null;
-        playerGridPos = playerGridPos.cellNeighbours[dir];
-        playerGridPos.Walkable = false;
-        playerGridPos.entity = this.transform;
-        gridGen.ResetDijkstra(playerGridPos.arrayCoords.x, playerGridPos.arrayCoords.y, gridGen.grid[stage % 2].heightMap, gridGen.grid[stage % 2].gridCells);
-        while (player.transform.position != playerGridPos.transform.position)
+        Debug.Log("PlayerMoveStart");
+        AllowInput = false;
+        playerGridCell.Walkable = true;
+        playerGridCell.entity = null;
+        playerGridCell = playerGridCell.cellNeighbours[dir];
+        //playerGridCell.Walkable = false;
+        playerGridCell.entity = this.transform;
+        gridGen.ResetDijkstra(playerGridCell.arrayCoords.x, playerGridCell.arrayCoords.y, GridGen.grid[stage % 2].heightMap, GridGen.grid[stage % 2].gridCells);
+        while (Vector3.SqrMagnitude(player.transform.position - playerGridCell.transform.position) >= 0.01f)
         {
-            player.transform.position = Vector3.MoveTowards(this.transform.position, playerGridPos.transform.position, playerMoveSpeed * Time.deltaTime);
-            if (player.transform.position == playerGridPos.transform.position)
+            player.transform.position = Vector3.MoveTowards(this.transform.position, playerGridCell.transform.position, playerMoveSpeed * Time.deltaTime);
+            if (Vector3.SqrMagnitude(player.transform.position - playerGridCell.transform.position)<= 0.01f)
             {
-                AllowInput = true;
+                player.transform.position = playerGridCell.transform.position;
+                PlayerIsMoving = false; ;
                 yield return true;
             }
-            else AllowInput = false;
+            else PlayerIsMoving = true;
 
             yield return null;
         }
@@ -110,31 +122,27 @@ public class InputManager: MonoBehaviour {
 
     IEnumerator MovePlayer(List<GridCell> path)
     {
-        playerGridPos.Walkable = true;
-        playerGridPos.entity = null;
-        playerGridPos = path[0];
         AllowInput = false;
-        Debug.Log(path.Count);
-
+        playerGridCell.Walkable = true;
+        playerGridCell.entity = null;
+        playerGridCell = path[0];
+        PlayerIsMoving = true;
         for (int i = 0; i < path.Count; i++)
         {
-            Debug.Log( i + ": " + path[i].transform.position);//returns correct stuff.
-        }
-        for (int i = 0; i < path.Count; i++)
-        {
-            playerGridPos = path[i];
-            Debug.Log(i + ": " + path[i].transform.position);//i = 0 is correct. but i = 1 from above is missing and 2,3,4.... all get shifted back a number
-            while (player.transform.position != path[i].transform.position)
+            playerGridCell = path[i];
+            while (Vector3.SqrMagnitude(player.transform.position - path[i].transform.position) >= 0.01f)
             {
                 player.transform.position = Vector3.MoveTowards(this.transform.position, path[i].transform.position, playerMoveSpeed * Time.deltaTime);
                 yield return null;
             }
         }
-        playerGridPos = path[path.Count - 1];
-        playerGridPos.Walkable = false;
-        playerGridPos.entity = this.transform;
+        playerGridCell = path[path.Count - 1];
+        //playerGridCell.Walkable = false;
+        playerGridCell.entity = this.transform;
+        gridGen.ResetDijkstra(playerGridCell.arrayCoords.x, playerGridCell.arrayCoords.y, GridGen.grid[stage % 2].heightMap, GridGen.grid[stage % 2].gridCells);
+        PlayerIsMoving = false;
         AllowInput = true;
-        gridGen.ResetDijkstra(playerGridPos.arrayCoords.x, playerGridPos.arrayCoords.y, gridGen.grid[stage % 2].heightMap, gridGen.grid[stage % 2].gridCells);
+        Debug.Log("Move End");
         yield return true;
     }
 }
