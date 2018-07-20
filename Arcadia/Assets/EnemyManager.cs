@@ -92,7 +92,6 @@ public class EnemyManager : MonoBehaviour {
     public static IEnumerator TryEndEnemyPhase()
     {
         enemiesInTurnPhaseCount--;
-        Debug.Log("E_turns Left : " + enemiesInTurnPhaseCount);
         if (enemiesInTurnPhaseCount <= 0)
         {
             //yield return new WaitForSeconds(0.075f);

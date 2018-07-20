@@ -20,7 +20,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4718256328713994}
   - component: {fileID: 212395398658901036}
-  - component: {fileID: 114982630833707424}
+  - component: {fileID: 114494083237064930}
   m_Layer: 0
   m_Name: Knight
   m_TagString: Untagged
@@ -41,7 +41,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &114982630833707424
+--- !u!114 &114494083237064930
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -49,7 +49,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1597929227859840}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7746792683dc0e04cbf688ec29c4f1f3, type: 3}
+  m_Script: {fileID: 11500000, guid: 4ae957fe004de4140aae94b08c16370f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   range: 1

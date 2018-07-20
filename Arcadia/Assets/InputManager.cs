@@ -97,7 +97,6 @@ public class InputManager: MonoBehaviour {
 
     IEnumerator MovePlayer(int dir)
     {
-        Debug.Log("PlayerMoveStart");
         AllowInput = false;
         playerGridCell.Walkable = true;
         playerGridCell.entity = null;

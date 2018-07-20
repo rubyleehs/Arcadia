@@ -2,23 +2,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
+
 public class BasicEnemyAI : MonoBehaviour
 {
     public int range;
     public GridCell gridCell;
 
-    public void StartTurn()
+    public virtual void StartTurn()
     {
         if (!Attack())
         {
-            StartCoroutine(Move());
+            StartCoroutine(Move(FindNextPos()));
         }
     }
 
-    IEnumerator Move()
+    public virtual IEnumerator Move(GridCell targetCell)
     {     
-        GridCell targetCell = gridCell.LowestAdjDijkstraCell();
-
         if (targetCell != null && targetCell.Walkable)
         {
             gridCell.Walkable = true;
@@ -27,20 +27,7 @@ public class BasicEnemyAI : MonoBehaviour
             targetCell.entity = this.transform;
             gridCell = targetCell;
 
-            while (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) >= 0.01f)
-            {
-                this.transform.position = Vector3.MoveTowards(this.transform.position, targetCell.transform.position, EnemyManager.enemyMoveSpeed * Time.deltaTime);
-                if (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) <= 0.01f)
-                {
-                    this.transform.position = targetCell.transform.position;
-                    Debug.Log(this.transform.position);
-                    StartCoroutine(EnemyManager.TryEndEnemyPhase());
-                    yield return true;
-                }
-                else InputManager.AllowInput = false;
-
-                yield return null;
-            }
+            StartCoroutine(MoveAnim(targetCell));
         }
         else
         {
@@ -49,7 +36,32 @@ public class BasicEnemyAI : MonoBehaviour
         }
     }
 
-    public bool Attack()//inherited script should call its own animation;
+    public virtual GridCell FindNextPos()
+    {
+        Debug.Log("Error! Pls override this in parent");
+        return null;
+    }
+
+    public virtual IEnumerator MoveAnim(GridCell targetCell)
+    {
+        while (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) >= 0.01f)
+        {
+            this.transform.position = Vector3.MoveTowards(this.transform.position, targetCell.transform.position, EnemyManager.enemyMoveSpeed * Time.deltaTime);
+            if (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) <= 0.01f)
+            {
+                this.transform.position = targetCell.transform.position;
+                StartCoroutine(EnemyManager.TryEndEnemyPhase());
+                yield return true;
+            }
+            else InputManager.AllowInput = false;
+
+            yield return null;
+        }
+        yield return true;
+    }
+
+
+    public virtual bool Attack()//inherited script should call its own animation;
     {
         if (gridCell.dijkstraValue> 0 && gridCell.dijkstraValue <= range + 1 && (gridCell.cellCoords.x == InputManager.playerGridCell.cellCoords.x || gridCell.cellCoords.y == InputManager.playerGridCell.cellCoords.y || gridCell.cellCoords.z == InputManager.playerGridCell.cellCoords.z))
         {
@@ -61,29 +73,9 @@ public class BasicEnemyAI : MonoBehaviour
         else return false; ;
     }
 
-    IEnumerator AttackAnim()
+    public virtual IEnumerator AttackAnim()
     {
-        while (Vector3.SqrMagnitude(this.transform.position - 0.5f * (gridCell.transform.position + InputManager.playerGridCell.transform.position)) >= 0.01f)
-        {
-            this.transform.position = Vector3.MoveTowards(this.transform.position, 0.5f * (gridCell.transform.position + InputManager.playerGridCell.transform.position), EnemyManager.enemyMoveSpeed * Time.deltaTime);
-            if (Vector3.SqrMagnitude(this.transform.position - 0.5f * (gridCell.transform.position + InputManager.playerGridCell.transform.position)) <= 0.01f)
-            {
-                this.transform.position = 0.5f * (gridCell.transform.position + InputManager.playerGridCell.transform.position);
-                break;
-            }
-           yield return null;
-        }
-        while (Vector3.SqrMagnitude(this.transform.position - gridCell.transform.position) >= 0.01f)
-        {
-            this.transform.position = Vector3.MoveTowards(this.transform.position,gridCell.transform.position , EnemyManager.enemyMoveSpeed * Time.deltaTime);
-            if (Vector3.SqrMagnitude(this.transform.position - gridCell.transform.position ) <= 0.01f)
-            {
-                this.transform.position = gridCell.transform.position;
-                break;
-            }
-            yield return null;
-        }
-        Debug.Log(this.transform.position);
+        Debug.Log("Error! Pls override this in parent");
         StartCoroutine(EnemyManager.TryEndEnemyPhase());
         yield return true;
     }
