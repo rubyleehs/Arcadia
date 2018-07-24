@@ -179,4 +179,34 @@ public class GridCell : MonoBehaviour
         }
         return nextCell;
     }
+
+    public List<GridCell> NeighboursWithDijkstraValue(int value)
+    {
+        List<GridCell> cells = new List<GridCell>();
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (cellNeighbours[i] != null && cellNeighbours[i].dijkstraValue == value && cellNeighbours[i].Walkable && cellNeighbours[i] != InputManager.playerGridCell) //DOnt put Walkable orcannot make/find last step as playable is on non walkable cell lol;
+            {
+                cells.Add(cellNeighbours[i]);
+            }
+        }
+        return cells;
+    }
+
+    public void ForcePush(int dir)
+    {
+        if (entity == null) return;
+        
+        if(entity.tag == "Enemy")
+        {
+            BasicEnemyAI enemyAI = entity.GetComponent<BasicEnemyAI>();
+            if (enemyAI.gridCell.cellNeighbours[dir] != null)
+            {
+                enemyAI.gridCell.cellNeighbours[dir].ForcePush(dir);
+                enemyAI.gridCell = enemyAI.gridCell.cellNeighbours[dir];
+                enemyAI.IsStunned = true;
+            }
+        }
+    }
 }

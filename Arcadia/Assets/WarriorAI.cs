@@ -10,10 +10,16 @@ public class WarriorAI : BasicEnemyAI {
         base.StartTurn();     
     }
 
-    public override bool Attack()
+    public override bool Attack(bool DealsDamage)
     {
-        return base.Attack();
+        return base.Attack(DealsDamage);
     }
+
+    public override bool CheckCellIsAttackable(GridCell checkCell)
+    {
+        return base.CheckCellIsAttackable(checkCell);
+    }
+
 
     public override IEnumerator Move(GridCell targetCell)
     {
@@ -55,6 +61,6 @@ public class WarriorAI : BasicEnemyAI {
             }
             yield return null;
         }
-        StartCoroutine(EnemyManager.TryEndEnemyPhase());
+        EnemyManager.TryEndEnemyPhase();
     }
 }

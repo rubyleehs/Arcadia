@@ -6,7 +6,8 @@ public class EnemyManager : MonoBehaviour {
     public static bool HasActiveEnemies = true;
     public static float enemyMoveSpeed;
 
-    public GameObject tempWarrior;
+    public List<GameObject> enemiesGO;
+    public Vector2Int enemySpawnCountRange;
 
     public float I_enemyMoveSpeed;
     public GridGen gridGen;
@@ -31,7 +32,7 @@ public class EnemyManager : MonoBehaviour {
     public void SummonRandomMob()
     {
         GridCell randomCell = gridGen.RandomActiveFreeCell();
-        Transform enemy = Instantiate(tempWarrior, randomCell.transform.position, Quaternion.identity).transform;
+        Transform enemy = Instantiate(enemiesGO[Random.Range(0,enemiesGO.Count)], randomCell.transform.position, Quaternion.identity).transform;
         randomCell.entity = enemy;
         randomCell.Walkable = false;
         enemy.GetComponent<BasicEnemyAI>().gridCell = randomCell;
@@ -50,6 +51,15 @@ public class EnemyManager : MonoBehaviour {
         while (InputManager.PlayerIsMoving)
         {
             yield return null;
+        }
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            if (enemies[i] == null || !enemies[i].isActiveAndEnabled || enemies[i].gridCell == null)
+            {
+                //if(enemies[i]!= null) Destroy(enemies[i].gameObject);
+                enemies.RemoveAt(i);
+                i--;
+            }
         }
         
         if (enemies.Count == 0)
@@ -89,7 +99,7 @@ public class EnemyManager : MonoBehaviour {
         }
     }
 
-    public static IEnumerator TryEndEnemyPhase()
+    public static void TryEndEnemyPhase()
     {
         enemiesInTurnPhaseCount--;
         if (enemiesInTurnPhaseCount <= 0)
@@ -97,8 +107,7 @@ public class EnemyManager : MonoBehaviour {
             //yield return new WaitForSeconds(0.075f);
             //Debug.Log("EnemyPhaseEnd");
             InputManager.AllowInput = true;
-            yield return true;
+            enemiesInTurnPhaseCount = 0;
         }
-        yield return true;
     }
 }

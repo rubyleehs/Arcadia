@@ -6,12 +6,19 @@ using UnityEngine;
 
 public class BasicEnemyAI : MonoBehaviour
 {
-    public int range;
+    public Vector2Int range;
     public GridCell gridCell;
+    public bool AttackObstructable;
+    public bool IsStunned;
 
     public virtual void StartTurn()
     {
-        if (!Attack())
+        if (IsStunned)
+        {
+            IsStunned = false;
+            StartCoroutine(Move(gridCell));
+        }
+        else if (!Attack(true))
         {
             StartCoroutine(Move(FindNextPos()));
         }
@@ -31,7 +38,7 @@ public class BasicEnemyAI : MonoBehaviour
         }
         else
         {
-            StartCoroutine(EnemyManager.TryEndEnemyPhase());
+            EnemyManager.TryEndEnemyPhase();
             yield return true;
         }
     }
@@ -50,7 +57,7 @@ public class BasicEnemyAI : MonoBehaviour
             if (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) <= 0.01f)
             {
                 this.transform.position = targetCell.transform.position;
-                StartCoroutine(EnemyManager.TryEndEnemyPhase());
+                EnemyManager.TryEndEnemyPhase();
                 yield return true;
             }
             else InputManager.AllowInput = false;
@@ -61,13 +68,28 @@ public class BasicEnemyAI : MonoBehaviour
     }
 
 
-    public virtual bool Attack()//inherited script should call its own animation;
+    public virtual bool Attack(bool DealsDamage)//inherited script should call its own animation;
     {
-        if (gridCell.dijkstraValue> 0 && gridCell.dijkstraValue <= range + 1 && (gridCell.cellCoords.x == InputManager.playerGridCell.cellCoords.x || gridCell.cellCoords.y == InputManager.playerGridCell.cellCoords.y || gridCell.cellCoords.z == InputManager.playerGridCell.cellCoords.z))
+        if (CheckCellIsAttackable(InputManager.playerGridCell)) 
         {
-            InputManager.playerHP--;
-            Debug.Log("Player Damaged!");
-            StartCoroutine(AttackAnim());
+            if (DealsDamage)
+            {
+                InputManager.playerHP--;
+                Debug.Log("Player Damaged!");
+                StartCoroutine(AttackAnim());
+            }
+            return true;
+        }
+        else return false; ;
+    }
+
+    public virtual bool CheckCellIsAttackable(GridCell checkCell)//inherited script should call its own animation;
+    {
+        if (checkCell == gridCell) return false; 
+        List<int> dif = new List<int>() { Mathf.Abs(gridCell.cellCoords.x - checkCell.cellCoords.x), Mathf.Abs(gridCell.cellCoords.y - checkCell.cellCoords.y), Mathf.Abs(gridCell.cellCoords.z - checkCell.cellCoords.z) };
+        dif.Sort();
+        if (gridCell.dijkstraValue > 0 && dif[1] <= range.y && dif[1] >= range.x && dif[0] == 0)
+        {
             return true;
         }
         else return false; ;
@@ -76,12 +98,13 @@ public class BasicEnemyAI : MonoBehaviour
     public virtual IEnumerator AttackAnim()
     {
         Debug.Log("Error! Pls override this in parent");
-        StartCoroutine(EnemyManager.TryEndEnemyPhase());
+        EnemyManager.TryEndEnemyPhase();
         yield return true;
     }
 
     public bool MoveToNextGrid()
     {
+        if (!this.isActiveAndEnabled) return false;
         if (gridCell.transform.parent == GridGen.cellParents[InputManager.stage % 2]) return true;
         Vector2Int newPos = gridCell.arrayCoords - (GridGen.grid[(InputManager.stage +1) % 2].exitLot - new Vector2Int(GridGen.gridRadius, 2));
         if(newPos.y %2 == 1 && GridGen.grid[(InputManager.stage + 1) % 2].exitLot.y % 2 == 1)
@@ -104,6 +127,34 @@ public class BasicEnemyAI : MonoBehaviour
             gridCell.entity = null;
             return false;
         }
+    }
 
+    public IEnumerator Die()
+    {
+        Debug.Log("die");
+        gridCell.Walkable = true;
+        gridCell.entity = null;
+        gridCell = null;
+        SpriteRenderer spriteRenderer = this.transform.GetComponent<SpriteRenderer>();
+        Color startColor = spriteRenderer.color;
+        Color endColor = spriteRenderer.color;
+        Vector3 endScale = this.transform.localScale * VisualInfo.deathExpansionRatio;
+        endColor.a = 0;
+        float progress = 0;
+
+        while(progress <= 1)
+        {
+            progress += VisualInfo.cellExitSpeed * Time.deltaTime;
+            spriteRenderer.color = Color.Lerp(startColor, endColor, progress);
+            this.transform.localScale = Vector3.Lerp(this.transform.localScale, endScale, progress);
+            
+            if(progress >= 1)
+            {
+                Destroy(this.gameObject);
+                yield return true;
+            }
+            yield return null;
+
+        }
     }
 }

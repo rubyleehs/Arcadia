@@ -188,9 +188,17 @@ MonoBehaviour:
   I_defaultCellColor:
     serializedVersion: 2
     rgba: 4282267958
+  I_highlightCellColor:
+    serializedVersion: 2
+    rgba: 4285950564
+  I_playerJumpCellColor:
+    serializedVersion: 2
+    rgba: 4287127899
   I_lavaColor:
     serializedVersion: 2
     rgba: 4279936762
+  I_deathExpansionRatio: 3
+  I_playerJumpHeight: 0
 --- !u!20 &519420031
 Camera:
   m_ObjectHideFlags: 0
@@ -331,6 +339,13 @@ MonoBehaviour:
   gridLayer:
     serializedVersion: 2
     m_Bits: 256
+  moveRange: 1
+  jumpRange: 2
+  AllowTurnSkip: 0
+  jumpCoolDown: 1
+  PlayerSelected: 0
+  attackAnimObj: {fileID: 1102220860901074, guid: 465268c44cd4a77418112b718d31012a,
+    type: 2}
   gridGen: {fileID: 1996998770}
   enemyManager: {fileID: 1357016135}
 --- !u!1 &1158523165
@@ -514,8 +529,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6c11dc244a694f408b5d29042ce90ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tempWarrior: {fileID: 1597929227859840, guid: 6c32abad6d05b1946a1b9877a2a6834c,
-    type: 2}
+  enemiesGO:
+  - {fileID: 1597929227859840, guid: 6c32abad6d05b1946a1b9877a2a6834c, type: 2}
+  - {fileID: 1654240981927392, guid: 3df8d20af9bf75d409378ab10a6f9590, type: 2}
+  enemySpawnCountRange: {x: 3, y: 7}
   I_enemyMoveSpeed: 82
   gridGen: {fileID: 1996998770}
   enemies: []
@@ -565,8 +582,9 @@ MonoBehaviour:
   - {fileID: 179996397}
   - {fileID: 1288899270}
   gridTransitionAnimBorder: {fileID: 1158523166}
-  lavaMinHeight: 44
+  lavaMaxHeight: 43
   enemyManager: {fileID: 1357016135}
+  highlightedCells: []
 --- !u!4 &1996998771
 Transform:
   m_ObjectHideFlags: 0
