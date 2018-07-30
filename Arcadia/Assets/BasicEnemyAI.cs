@@ -10,23 +10,47 @@ public class BasicEnemyAI : MonoBehaviour
     public GridCell gridCell;
     public bool AttackObstructable;
     public bool IsStunned;
+    public bool IsMoving;
+    public bool WillBeDead = false;
+
 
     public virtual void StartTurn()
     {
         if (IsStunned)
-        {
+        {    
             IsStunned = false;
-            StartCoroutine(Move(gridCell));
+            //EnemyManager.TryEndEnemyPhase();
+            return;
         }
         else if (!Attack(true))
         {
-            StartCoroutine(Move(FindNextPos()));
+            Move(FindNextPos());
         }
     }
 
-    public virtual IEnumerator Move(GridCell targetCell)
-    {     
-        if (targetCell != null && targetCell.Walkable)
+    public void Push(GridCell targetCell)
+    {
+        IsStunned = true;
+        Move(gridCell);
+    }
+
+    public virtual void Move(GridCell targetCell)
+    {
+        if (IsStunned)
+        {
+            //Debug.Log("archer stunned");
+            targetCell = gridCell;
+           
+            if (!targetCell.Walkable)
+            {
+                WillBeDead = true;
+            }
+            targetCell.Walkable = false;
+            targetCell.entity = this.transform;
+            StartCoroutine(MoveAnim(targetCell));
+            return;
+        }
+        if ((targetCell != null && targetCell.Walkable && targetCell != gridCell))
         {
             gridCell.Walkable = true;
             gridCell.entity = null;
@@ -36,10 +60,13 @@ public class BasicEnemyAI : MonoBehaviour
 
             StartCoroutine(MoveAnim(targetCell));
         }
-        else
+        else if(targetCell != null)
         {
-            EnemyManager.TryEndEnemyPhase();
-            yield return true;
+            //gridCell.Walkable = true;
+            //gridCell.entity = null;
+            //WillBeDead = true;//
+            StartCoroutine(MoveAnim(targetCell));
+           // StartCoroutine(Die(VisualInfo.deathExpansionRatio));
         }
     }
 
@@ -51,13 +78,33 @@ public class BasicEnemyAI : MonoBehaviour
 
     public virtual IEnumerator MoveAnim(GridCell targetCell)
     {
+        if(Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) <= 0.01f)
+        {
+            this.transform.position = targetCell.transform.position;
+            IsMoving = false;
+            EnemyManager.TryEndEnemyPhase();
+            if (WillBeDead)
+            {
+                StartCoroutine(Die(VisualInfo.deathExpansionRatio));
+            }
+            yield return true;
+        }
+        
+
         while (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) >= 0.01f)
         {
+            IsMoving = true;
             this.transform.position = Vector3.MoveTowards(this.transform.position, targetCell.transform.position, EnemyManager.enemyMoveSpeed * Time.deltaTime);
             if (Vector3.SqrMagnitude(this.transform.position - targetCell.transform.position) <= 0.01f)
             {
                 this.transform.position = targetCell.transform.position;
+                IsMoving = false;
                 EnemyManager.TryEndEnemyPhase();
+
+                if (WillBeDead)
+                {
+                    StartCoroutine(Die(VisualInfo.deathExpansionRatio));
+                }
                 yield return true;
             }
             else InputManager.AllowInput = false;
@@ -129,20 +176,24 @@ public class BasicEnemyAI : MonoBehaviour
         }
     }
 
-    public IEnumerator Die()
+    public IEnumerator Die(float deathExpansionRatio)
     {
-        Debug.Log("die");
+        while (IsMoving)
+        {
+            Debug.Log("DeathMove");//
+            yield return null;
+        }
         gridCell.Walkable = true;
         gridCell.entity = null;
         gridCell = null;
         SpriteRenderer spriteRenderer = this.transform.GetComponent<SpriteRenderer>();
         Color startColor = spriteRenderer.color;
         Color endColor = spriteRenderer.color;
-        Vector3 endScale = this.transform.localScale * VisualInfo.deathExpansionRatio;
+        Vector3 endScale = this.transform.localScale * deathExpansionRatio;
         endColor.a = 0;
         float progress = 0;
 
-        while(progress <= 1)
+        while(progress < 1)
         {
             progress += VisualInfo.cellExitSpeed * Time.deltaTime;
             spriteRenderer.color = Color.Lerp(startColor, endColor, progress);
@@ -150,6 +201,7 @@ public class BasicEnemyAI : MonoBehaviour
             
             if(progress >= 1)
             {
+                Debug.Log("Die");
                 Destroy(this.gameObject);
                 yield return true;
             }

@@ -24,7 +24,7 @@ public class ArcherAI : BasicEnemyAI {
     }
 
 
-    public override IEnumerator Move(GridCell targetCell)
+    public override void Move(GridCell targetCell)
     {
         if (gridCell.dijkstraValue > range.y - 1)
         {
@@ -44,8 +44,7 @@ public class ArcherAI : BasicEnemyAI {
             }
             else targetCell = gridCell;
         }
-        StartCoroutine(base.Move(targetCell));
-        yield return true;
+       base.Move(targetCell);
     }
 
     public override GridCell FindNextPos()

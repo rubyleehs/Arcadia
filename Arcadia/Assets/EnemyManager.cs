@@ -73,6 +73,13 @@ public class EnemyManager : MonoBehaviour {
         enemiesInTurnPhaseCount = enemies.Count;
         for (int i = 0; i < enemies.Count; i++)
         {
+            if (enemies[i].IsStunned)
+            {
+                enemies[i].Push(enemies[i].gridCell);
+            }
+        }
+        for (int i = 0; i < enemies.Count; i++)
+        {
             enemies[i].StartTurn();
         }
         yield return true;
@@ -102,6 +109,7 @@ public class EnemyManager : MonoBehaviour {
     public static void TryEndEnemyPhase()
     {
         enemiesInTurnPhaseCount--;
+
         if (enemiesInTurnPhaseCount <= 0)
         {
             //yield return new WaitForSeconds(0.075f);

@@ -21,11 +21,10 @@ public class WarriorAI : BasicEnemyAI {
     }
 
 
-    public override IEnumerator Move(GridCell targetCell)
+    public override void Move(GridCell targetCell)
     {
         targetCell = gridCell.LowestAdjDijkstraCell();
-        StartCoroutine(base.Move(targetCell));
-        yield return true;
+        base.Move(targetCell);
     }
 
     public override GridCell FindNextPos()

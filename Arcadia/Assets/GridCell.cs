@@ -177,6 +177,7 @@ public class GridCell : MonoBehaviour
                 else if (nextCell.dijkstraValue > cellNeighbours[i].dijkstraValue) nextCell = cellNeighbours[i];
             }
         }
+        if (nextCell == null) nextCell = this;
         return nextCell;
     }
 
@@ -201,11 +202,18 @@ public class GridCell : MonoBehaviour
         if(entity.tag == "Enemy")
         {
             BasicEnemyAI enemyAI = entity.GetComponent<BasicEnemyAI>();
-            if (enemyAI.gridCell.cellNeighbours[dir] != null)
+            enemyAI.IsStunned = true;
+            if (enemyAI.gridCell.cellNeighbours[dir] != null&& enemyAI.gridCell.cellNeighbours[dir].entity == null)
             {
-                enemyAI.gridCell.cellNeighbours[dir].ForcePush(dir);
-                enemyAI.gridCell = enemyAI.gridCell.cellNeighbours[dir];
+                //enemyAI.gridCell.cellNeighbours[dir].ForcePush(dir);
                 enemyAI.IsStunned = true;
+                Walkable = true;
+                entity = null;
+                enemyAI.gridCell = enemyAI.gridCell.cellNeighbours[dir];
+            }
+            else
+            {
+                enemyAI.Die(VisualInfo.deathExpansionRatio);//h
             }
         }
     }

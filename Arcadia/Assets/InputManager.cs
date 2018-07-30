@@ -24,6 +24,8 @@ public class InputManager : MonoBehaviour
     public static Transform player;
     public EnemyManager enemyManager;
     private int jumpCoolDownLeft = 0;
+    public float playerJumpHeight;
+    public float playerJumpScale;
 
     // Use this for initialization
     void Start()
@@ -81,7 +83,7 @@ public class InputManager : MonoBehaviour
                         for (int x = 0; x <= 2 * GridGen.gridRadius; x++)
                         {
 
-                            if (GridGen.grid[stage % 2].gridCells[x, y] != null && CanReachToCell(GridGen.grid[stage % 2].gridCells[x, y], moveRange,false)) gridGen.HighlightCell(GridGen.grid[stage % 2].gridCells[x, y],VisualInfo.highlightCellColor);
+                            if (GridGen.grid[stage % 2].gridCells[x, y] != null && CanReachToCell(GridGen.grid[stage % 2].gridCells[x, y], moveRange,true)) gridGen.HighlightCell(GridGen.grid[stage % 2].gridCells[x, y],VisualInfo.highlightCellColor);
                             else if (jumpCoolDownLeft <= 0 && GridGen.grid[stage % 2].gridCells[x, y] != null && CanReachToCell(GridGen.grid[stage % 2].gridCells[x, y], jumpRange,true)) gridGen.HighlightCell(GridGen.grid[stage % 2].gridCells[x, y],VisualInfo.playerJumpCellColor);
                         }
                     }
@@ -209,6 +211,7 @@ public class InputManager : MonoBehaviour
 
     IEnumerator PlayerJump(GridCell gridCellToJumpTo)
     {
+        Debug.Log("Jump");
         AllowInput = false;
         jumpCoolDownLeft = jumpCoolDown + 1;
         playerGridCell.Walkable = true;
@@ -216,13 +219,27 @@ public class InputManager : MonoBehaviour
         playerGridCell = gridCellToJumpTo;
         playerGridCell.entity = this.transform;
         gridGen.ResetDijkstra(playerGridCell.arrayCoords.x, playerGridCell.arrayCoords.y, GridGen.grid[stage % 2].heightMap, GridGen.grid[stage % 2].gridCells);
+        Vector3 startScale = player.transform.localScale;
+        float progress = 0;
+        List<Vector3> bezierNodes = new List<Vector3>() { this.transform.position, 0.5f * (this.transform.position + InputManager.playerGridCell.transform.position) + new Vector3(0, playerJumpHeight, 0), InputManager.playerGridCell.transform.position };
+
+        for (int i = 0; i < 6; i++)
+        {
+            if (playerGridCell.cellNeighbours[i] != null) playerGridCell.cellNeighbours[i].ForcePush(i);//kfuy
+        }
+
         while (Vector3.SqrMagnitude(player.transform.position - playerGridCell.transform.position) >= 0.01f)
         {
-            player.transform.position = Vector3.MoveTowards(this.transform.position, playerGridCell.transform.position, playerMoveSpeed * Time.deltaTime);
-            if (Vector3.SqrMagnitude(player.transform.position - playerGridCell.transform.position) <= 0.01f)
+            progress += Time.deltaTime * playerMoveSpeed * 0.1f * (HexMetrics.innerRadius / (Vector3.Magnitude(this.transform.position - InputManager.playerGridCell.transform.position)));
+            Vector3 nextPos = VisualInfo.GetBezierCurvePoint(bezierNodes, progress);
+            player.transform.position = nextPos;
+            player.transform.localScale = Vector3.Lerp(startScale, startScale * playerJumpScale, 1- Mathf.Abs(2 * progress - 1));
+            if (progress >= 1)
             {
+                player.transform.localScale = startScale;
                 player.transform.position = playerGridCell.transform.position;
                 PlayerIsMoving = false;
+                
                 EndPlayerTurn();
                 yield return true;
             }
@@ -271,7 +288,7 @@ public class InputManager : MonoBehaviour
         }
         for (int i = 0; i < enemiesToKill.Count; i++)
         {
-            StartCoroutine(enemiesToKill[i].Die());
+            StartCoroutine(enemiesToKill[i].Die(VisualInfo.deathExpansionRatio));
         }
 
         float progress = 0;

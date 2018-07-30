@@ -348,6 +348,8 @@ MonoBehaviour:
     type: 2}
   gridGen: {fileID: 1996998770}
   enemyManager: {fileID: 1357016135}
+  playerJumpHeight: 15
+  playerJumpScale: 1.4
 --- !u!1 &1158523165
 GameObject:
   m_ObjectHideFlags: 0
